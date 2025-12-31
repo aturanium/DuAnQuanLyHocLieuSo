@@ -47,31 +47,97 @@ class Lesson(BaseModel):
     def __str__(self):
         return self.subject
 
-class Material(BaseModel):
-    name = models.CharField(max_length=255)
-    file_upload = CloudinaryField('file_upload', resource_type='auto', folder='materials')
-    description = models.TextField(null=True, blank=True)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='materials')
+class MaterialType(models.IntegerChoices):
+    DOCUMENT = 1, 'Giáo trình'
+    SLIDE = 2, 'Slide'
+    VIDEO = 3, 'Video'
+    REFERENCE = 4, 'Tham khảo'
+    OTHER = 5, 'Khác'
+
+class Level(models.IntegerChoices):
+    BASIC = 1, 'Cơ bản'
+    INTERMEDIATE = 2, 'Trung cấp'
+    ADVANCED = 3, 'Nâng cao'
+
+class Topic(BaseModel):
+    name = models.CharField(max_length=100)
 
     def __str__(self):
         return self.name
-    
+
+
+
+class Material(BaseModel):
+    name = models.CharField(max_length=255)
+
+    file = CloudinaryField(
+        'file',
+        resource_type='auto',
+        folder='materials',
+        null=True, blank=True,
+    )
+
+    description = models.TextField(null=True, blank=True)
+
+    material_type = models.IntegerField(
+        choices=MaterialType.choices, default=MaterialType.SLIDE
+    )
+
+    level = models.IntegerField(
+        choices=Level.choices,
+        default=Level.BASIC
+    )
+
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='materials'
+    )
+
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        limit_choices_to={'role__in': [User.ADMIN, User.TEACHER]}
+    )
+
+    topics = models.ManyToManyField(Topic,related_name='materials',blank=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Interaction(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
 
     class Meta:
         abstract = True
 
+
 class Comment(Interaction):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
     content = models.TextField()
 
     def __str__(self):
-        return f"{self.user.username} - {self.content}"
-    
+        target = self.material.name if self.material else (self.lesson.subject if self.lesson else "unknown")
+        return f"{self.user.username} - {target}: {self.content[:30]}"
+
+
 class Like(Interaction):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True, related_name='likes')
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, null=True, blank=True, related_name='likes')
+
     class Meta:
-        unique_together = ('user', 'lesson')
+        unique_together = (('user', 'lesson'), ('user', 'material'))
 
     def __str__(self):
-        return f"{self.user.username} liked {self.lesson.subject}"
+        target = self.material.name if self.material else (self.lesson.subject if self.lesson else "unknown")
+        return f"{self.user.username} liked {target}"
+
+
+class Note(Interaction):
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='notes')
+    content = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Note by {self.user.username} on {self.material.name}"

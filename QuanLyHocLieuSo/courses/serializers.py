@@ -1,26 +1,32 @@
 from rest_framework import serializers
-from .models import Category, Course, Lesson, Material, User, Comment
+from .models import Category, Course, Lesson, Material, User, Comment, Topic, Like, Note
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar', 'role']
+        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'avatar', 'role']
         extra_kwargs = {
             'password': {'write_only': True}
         }
 
-        def create(self, validated_data):
+    def create(self, validated_data):
             data = validated_data.copy()
             user = User(**data)
             user.set_password(user.password)
             user.save()
             return user
         
-        def to_representation(self, instance):
+    def to_representation(self, instance):
             rep = super().to_representation(instance)
             if instance.avatar:
                 rep['avatar'] = instance.avatar.url
             return rep
+
+    def get_name(self, obj):
+        full = f"{obj.first_name} {obj.last_name}".strip()
+        return full if full else obj.username
+
         
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,32 +46,63 @@ class CourseSerializer(serializers.ModelSerializer):
         return None
 
 class LessonSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
+    course = CourseSerializer()
 
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'created_date', 'course', 'image']
+        fields = ['id', 'subject', 'content', 'created_date', 'course']
 
-    def get_image(self, lesson):
-        if lesson.image:
-            return lesson.image.url
-        return None
-    
+
+class TopicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Topic
+        fields = ['id', 'name']
+
+
 class MaterialSerializer(serializers.ModelSerializer):
-    file_upload = serializers.SerializerMethodField()
+    file = serializers.SerializerMethodField()
+    uploaded_by = serializers.CharField(source='uploaded_by.username', read_only=True)
+    lesson = LessonSerializer(read_only=True)
+    topics = TopicSerializer(many=True, read_only=True)
 
     class Meta:
         model = Material
-        fields = ['id', 'name', 'file_upload', 'description']
+        fields = [
+            'id',
+            'name',
+            'description',
+            'file',
+            'material_type',
+            'level',
+            'lesson',
+            'topics',
+            'uploaded_by',
+            'created_date'
+        ]
 
-    def get_file_upload(self, material):
-        if material.file_upload:
-            return material.file_upload.url
-        return None
+    def get_file(self, obj):
+        return obj.file.url if obj.file else None
     
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'created_date', 'upload_date', 'user', 'lesson']
+        fields = ['id', 'content', 'created_date', 'user', 'lesson']
+        extra_kwargs = {
+            'lesson': {'write_only': True}
+        }
+
+class LikeSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Like
+        fields = ('id', 'user', 'lesson', 'material', 'created_date')
+
+class NoteSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Note
+        fields = ('id', 'user', 'material', 'content', 'created_date')
