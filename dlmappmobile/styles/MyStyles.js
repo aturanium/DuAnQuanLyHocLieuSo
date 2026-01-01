@@ -8,6 +8,9 @@ export default StyleSheet.create({
     marginTop : {
         marginTop: 25,
     },
+    marginBottom : {
+        marginBottom: 25,
+    },
     right: {
         marginLeft: 310
     },
@@ -30,11 +33,6 @@ export default StyleSheet.create({
         width: 165,
         height: 95,
         borderRadius: 10,
-     },
-     image: {
-        width: 80,
-        height: 80,
-        borderRadius: 50,
      },
     padding: {
         padding: 5
@@ -78,9 +76,31 @@ export default StyleSheet.create({
         position: 'relative'
     },
     portalContainer: {
-        backgroundColor: "white",
+        backgroundColor: 'white',
         padding: 10,
         margin: 10,
         borderRadius: 16
-    }
+    },
+    chatRow: {
+        flexDirection: 'row',
+        alignItems: 'center',  
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    image: {
+        width: 70,
+        height: 70,
+        borderRadius: 50,
+        marginRight: 12,
+    },
+
+    chatInfo: {
+        flex:1,
+        justifyContent: 'center'
+    },
+
+    chatName: {
+        fontSize: 16,
+        fontWeight: "600",
+    },
 })

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Course, Lesson, Material, User, Comment, Topic, Like, Note
+from .models import Category, Course, Lesson, Material, User, Comment, Topic, Like, Note, Question, Answer
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -45,6 +45,7 @@ class CourseSerializer(serializers.ModelSerializer):
             return course.image.url
         return None
 
+
 class LessonSerializer(serializers.ModelSerializer):
     course = CourseSerializer()
 
@@ -67,31 +68,42 @@ class MaterialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Material
-        fields = [
-            'id',
-            'name',
-            'description',
-            'file',
-            'material_type',
-            'level',
-            'lesson',
-            'topics',
-            'uploaded_by',
-            'created_date'
-        ]
+        fields = ['id', 'name', 'description', 'file', 'material_type', 'level', 'lesson', 'topics','uploaded_by', 'created_date' ]
 
     def get_file(self, obj):
         return obj.file.url if obj.file else None
-    
+
+
+class QuestionSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+    answer_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Question
+        fields = [ 'id', 'title', 'content','lesson', 'created_by','is_solved', 'created_date', 'answer_count']
+
+    def get_answer_count(self, obj):
+        return obj.answer_set.count()
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Answer
+        fields = ['id', 'content', 'question', 'created_by', 'is_accepted', 'created_date']
+
+
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'created_date', 'user', 'lesson']
+        fields = ['id', 'content', 'created_date', 'user', 'lesson', 'material', 'question', 'answer',]
         extra_kwargs = {
             'lesson': {'write_only': True}
         }
+
 
 class LikeSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
@@ -99,6 +111,7 @@ class LikeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Like
         fields = ('id', 'user', 'lesson', 'material', 'created_date')
+
 
 class NoteSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)

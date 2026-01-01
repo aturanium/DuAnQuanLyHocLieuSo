@@ -66,44 +66,34 @@ class Topic(BaseModel):
         return self.name
 
 
-
 class Material(BaseModel):
     name = models.CharField(max_length=255)
-
-    file = CloudinaryField(
-        'file',
-        resource_type='auto',
-        folder='materials',
-        null=True, blank=True,
-    )
-
+    file = CloudinaryField('file', resource_type='auto', folder='materials', null=True, blank=True, )
     description = models.TextField(null=True, blank=True)
 
-    material_type = models.IntegerField(
-        choices=MaterialType.choices, default=MaterialType.SLIDE
-    )
-
-    level = models.IntegerField(
-        choices=Level.choices,
-        default=Level.BASIC
-    )
-
-    lesson = models.ForeignKey(
-        Lesson,
-        on_delete=models.CASCADE,
-        related_name='materials'
-    )
-
-    uploaded_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        limit_choices_to={'role__in': [User.ADMIN, User.TEACHER]}
-    )
-
+    material_type = models.IntegerField(choices=MaterialType.choices, default=MaterialType.SLIDE)
+    level = models.IntegerField( choices=Level.choices, default=Level.BASIC)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='materials')
+    uploaded_by = models.ForeignKey( User, on_delete=models.CASCADE, limit_choices_to={'role__in': [User.ADMIN, User.TEACHER]})
     topics = models.ManyToManyField(Topic,related_name='materials',blank=True)
 
     def __str__(self):
         return self.name
+
+
+class Question(BaseModel):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_solved = models.BooleanField(default=False)
+
+
+class Answer(BaseModel):
+    content = models.TextField()
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_accepted = models.BooleanField(default=False)
 
 
 class Interaction(BaseModel):
@@ -114,9 +104,11 @@ class Interaction(BaseModel):
 
 
 class Comment(Interaction):
+    content = models.TextField()
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
     material = models.ForeignKey(Material, on_delete=models.CASCADE, null=True, blank=True, related_name='comments')
-    content = models.TextField()
+    question = models.ForeignKey(Question, null=True, blank=True, on_delete=models.CASCADE)
+    answer = models.ForeignKey(Answer, null=True, blank=True, on_delete=models.CASCADE)
 
     def __str__(self):
         target = self.material.name if self.material else (self.lesson.subject if self.lesson else "unknown")

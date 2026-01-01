@@ -10,6 +10,8 @@ export const endpoints = {
     'topics': '/topics/',
     'users': '/users/',
     'comments': '/comments/',
+    'questions': '/questions/',
+    'answers': '/answers/',
     'likes': '/likes/',
     'notes': '/notes/',
 }

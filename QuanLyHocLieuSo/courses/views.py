@@ -3,9 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import  Q
 from rest_framework.response import Response
 
-from .models import Category, Course, Lesson, Material, User, Comment, Topic, Like, Note
+from .models import Category, Course, Lesson, Material, User, Comment, Topic, Like, Note,Question, Answer
 from .serializers import CategorySerializer, CourseSerializer, LessonSerializer, MaterialSerializer, UserSerializer, \
-    CommentSerializer, TopicSerializer, NoteSerializer, LikeSerializer
+    CommentSerializer, TopicSerializer, NoteSerializer, LikeSerializer, QuestionSerializer, AnswerSerializer
 
 
 class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
@@ -64,7 +64,6 @@ class TopicViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TopicSerializer
 
 
-
 class MaterialViewSet(viewsets.ModelViewSet):
     serializer_class = MaterialSerializer
     permission_classes = [IsAuthenticated]
@@ -103,9 +102,70 @@ class MaterialViewSet(viewsets.ModelViewSet):
         serializer.save(uploaded_by=self.request.user)
 
 
+class QuestionViewSet(viewsets.ModelViewSet):
+    serializer_class = QuestionSerializer
+    queryset = Question.objects.filter(active=True)
+
+    def get_queryset(self):
+        queries = self.queryset
+
+        lesson_id = self.request.query_params.get('lesson')
+        q = self.request.query_params.get('q')
+
+        if lesson_id:
+            queries = queries.filter(lesson_id=lesson_id)
+
+        if q:
+            queries = queries.filter(
+                Q(title__icontains=q) |
+                Q(content__icontains=q)
+            )
+
+        return queries.order_by('-created_date')
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class AnswerViewSet(viewsets.ModelViewSet):
+    serializer_class = AnswerSerializer
+    queryset = Answer.objects.filter(active=True)
+
+    def get_queryset(self):
+        queries = self.queryset
+        question_id = self.request.query_params.get('question')
+
+        if question_id:
+            queries = queries.filter(question_id=question_id)
+
+        return queries.order_by('created_date')
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.filter(active=True)
     serializer_class = CommentSerializer
+    queryset = Comment.objects.filter(active=True)
+
+    def get_queryset(self):
+        queries = self.queryset
+
+        lesson = self.request.query_params.get('lesson')
+        material = self.request.query_params.get('material')
+        question = self.request.query_params.get('question')
+        answer = self.request.query_params.get('answer')
+
+        if lesson:
+            queries = queries.filter(lesson_id=lesson)
+        if material:
+            queries = queries.filter(material_id=material)
+        if question:
+            queries = queries.filter(question_id=question)
+        if answer:
+            queries = queries.filter(answer_id=answer)
+
+        return queries.order_by('created_date')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)

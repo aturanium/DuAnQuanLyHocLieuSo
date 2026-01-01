@@ -10,6 +10,7 @@ import { Icon, PaperProvider } from "react-native-paper";
 import PageMaterials from "./screens/Material/PageMaterials";
 import Study from "./screens/Discuss/Study";
 
+
 const Stack = createNativeStackNavigator();
 const StackNavigator = () => {
     return(
@@ -19,6 +20,7 @@ const StackNavigator = () => {
         </Stack.Navigator>
     );
 }
+
 
 const Tab = createBottomTabNavigator();
 const TabNavigator = () => {
